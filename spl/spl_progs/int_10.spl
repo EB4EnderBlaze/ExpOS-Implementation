@@ -1,14 +1,18 @@
 alias currentPID R0;
 currentPID = [SYSTEM_STATUS_TABLE + 1];
 
-alias process_table_entry R1;
-process_table_entry = PROCESS_TABLE + 16 * currentPID;
+[PROCESS_TABLE + 16 * currentPID + 4] = TERMINATED;
 
-[process_table_entry + 4] = TERMINATED;
+alias newPID R1;
+newPID = (currentPID % 15) + 1;
 
-if([PROCESS_TABLE + 16 + 4] == TERMINATED && [PROCESS_TABLE + 32 + 4] == TERMINATED)
-then
-	halt;
+while((newPID != currentPID) && ([PROCESS_TABLE + 16 * newPID + 4] == TERMINATED)) do       // iterate to find new PID
+    newPID = (newPID % 15) + 1;
+endwhile;
+
+if(newPID == currentPID) then
+    halt;
 endif;
 
-call MOD_5;
+// If any process other than idle is not TERMINATED, then schedule it
+call SCHEDULER;
