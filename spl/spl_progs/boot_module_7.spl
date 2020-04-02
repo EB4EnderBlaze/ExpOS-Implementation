@@ -1,4 +1,6 @@
-loadi(59, 3);                       // Load inode table
+loadi(59, 3);                       // Load Inode Table
+
+loadi(61, 2);                       // Load Disk Free List
 
 loadi(50, 63);                      // Load module 5: Scheduler
 loadi(51, 64);
@@ -117,6 +119,15 @@ process_table = PROCESS_TABLE + 16;
 [MEMORY_FREE_LIST + 79] = 1;
 [MEMORY_FREE_LIST + 80] = 1;
 [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 5;  // Subtract the number of pages used by INIT
+
+// Initialize disk map table of INIT
+i = 2;
+while(i <= 9) do                        // Set block numbers corresponding to all pages of INIT as -1
+    [DISK_MAP_TABLE + 10 + i] = -1;
+    i = i + 1;
+endwhile;
+[DISK_MAP_TABLE + 10 + 4] = 7;   // First code page lies in block 7 of the disk
+[DISK_MAP_TABLE + 10 + 5] = 8;   // Second code page lies in block 8
 
 alias proc R2;
 proc = 2;
