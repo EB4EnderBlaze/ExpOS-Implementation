@@ -5,6 +5,7 @@ load --int=disk $HOME/myexpos/spl/spl_progs/disk_int.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/exhandler.xsm
 load --int=6 $HOME/myexpos/spl/spl_progs/int_6.xsm
 load --int=7 $HOME/myexpos/spl/spl_progs/int_7.xsm
+load --int=8 $HOME/myexpos/spl/spl_progs/int_8.xsm
 load --int=9 $HOME/myexpos/spl/spl_progs/int_9.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/int_10.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/module_2.xsm

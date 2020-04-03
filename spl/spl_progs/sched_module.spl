@@ -38,7 +38,9 @@ PTLR = [new_process_table + 15];                                // New PTLR
 
 if([new_process_table + 4] == CREATED) then                     // If the process is in created state, then do the following
 
-    SP = [new_process_table + 13];                              // Set SP to UPTR
+    SP = [new_process_table + 13];
+	//BP = [SP];
+	BP = [[new_process_table + 11] * 512]; 
     [new_process_table + 4] = RUNNING;                          // Set state to RUNNING
     [new_process_table + 9] = 0;                                // Set mode flag to 0
     ireturn;

@@ -1,5 +1,26 @@
 alias funcNum R1;               // Function Number
 
+
+if(funcNum == 1) then
+
+	alias count R2;
+	count = 1 ;
+	while(count < MAX_PROC_NUM) do
+		if([PROCESS_TABLE + count*16 + 4] == TERMINATED) then
+			R0 = count;
+			[PROCESS_TABLE + count*16 + 4] = ALLOCATED;
+			[PROCESS_TABLE + count*16 + 1] = count;
+			[PROCESS_TABLE + count*16 + 14] = PAGE_TABLE_BASE + 20*count;
+			[PROCESS_TABLE + count*16 + 15] = 10;
+			return;
+		endif;
+		count = count + 1;
+	endwhile;
+	R0 = -1;
+	return;
+endif;
+
+
 if(funcNum == 2) then           // Free user area page
     alias PID R2;               // First Argument (PID)
     alias userPage R3;

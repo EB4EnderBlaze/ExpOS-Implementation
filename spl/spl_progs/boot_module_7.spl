@@ -47,6 +47,9 @@ loadi(64, 14);
 loadi(65, 7);                       // Load INIT
 loadi(66, 8);
 
+loadi(18,31);						//int-8
+loadi(19,32);
+
 loadi(83, 69);                      // Load second process
 
 loadi(89, 70);                      // Load third process
