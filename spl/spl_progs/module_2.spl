@@ -1,110 +1,73 @@
-alias funcNum R1;
-
-if(funcNum == 1) then                                           // Get Free Page function
-
-    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;  // Increment WAIT_MEM_COUNT
-
-    while([SYSTEM_STATUS_TABLE + 2] == 0) do                    // Busy Loop
-
-        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_MEM;    // Process is waiting for memory
-        multipush(R1);
-        call SCHEDULER;
-        multipop(R1);
-    
-    endwhile;
-
-    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;  // Decrement WAIT_MEM_COUNT
-    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;  // Decrement MEM_FREE_COUNT
-
-    alias i R2;
-    i = 76;                                                     // Memory pages allowed for user programs: 76 - 127
-
-    while(i <= 127) do                                          // Search the memory free list for a free page
-
-        if([MEMORY_FREE_LIST + i] == 0) then
-
-            [MEMORY_FREE_LIST + i] = 1;                         // Set corresponding memory free list entry to 1         
-            R0 = i;                                             // Store page number in R0
-            break;
-
-        endif;
-
-        i = i + 1;
-    
-    endwhile;
-    return;
-
+alias functionNum R1;
+if (functionNum == 1) then			//Get Free Page
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;	//wait mem count 
+	while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+		[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 4] = WAIT_MEM;
+		call MOD_5;
+	endwhile;
+	[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1; 
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+	alias counter R0;
+	counter = 76;
+	while (counter < 128) do
+		if ([MEMORY_FREE_LIST + counter] == 0) then
+			[MEMORY_FREE_LIST + counter] = 1;
+			return;
+		endif;
+		counter = counter + 1;
+	endwhile;
 endif;
-
-if(funcNum == 2) then                                           // Release Page function
-
-    alias pageNum R2;
-
-    [MEMORY_FREE_LIST + pageNum] = [MEMORY_FREE_LIST + pageNum] - 1;    // Decrement corresponding entry in memory free list
-
-    if([MEMORY_FREE_LIST + pageNum] == 0) then
-        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;      // If this page is no longer used, then increment the number of free pages
-    endif;
-
-    alias i R3;
-    i = 0;
-
-    while(i < MAX_PROC_NUM) do                                  // Update the states of all those processes which are in WAIT_MEM state
-
-        if([PROCESS_TABLE + i * 16 + 4] == WAIT_MEM) then
-            [PROCESS_TABLE + i * 16 + 4] = READY;
-        endif;
-        
-        i = i + 1;
-    endwhile;
-    return;
-
+if (functionNum == 2) then			//Release Page	
+	alias PageNum R2;
+	[MEMORY_FREE_LIST + PageNum] = [MEMORY_FREE_LIST + PageNum] - 1;
+	if ([MEMORY_FREE_LIST + PageNum] == 0) then
+		[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+	endif;
+	alias counter R3;
+	counter = 1;
+	while (counter < 16) do
+		if ([PROCESS_TABLE + (counter * 16) + 4] == WAIT_MEM) then
+			[PROCESS_TABLE + (counter * 16) + 4] = READY;
+		endif;
+		counter = counter + 1;
+	endwhile;
+	return;
 endif;
-
-if(funcNum == 5) then
-	alias block R2;
-	alias ret R0;
-	alias pro R3;
-	alias i R4;
-	alias page_no R5;
-	
-	pro = 0;
-	while(pro < MAX_PROC_NUM) do
-		i=0;
-			while(i < 4) do
-				if(([DISK_MAP_TABLE + 10*pro + i+4] == block) && ([PAGE_TABLE_BASE + 20*pro + 2*i + 8]!=-1)) then
-					page_no = i+4;
-					page_no = [PTBR + 2*page_no];
-					[MEMORY_FREE_LIST + page_no] = [MEMORY_FREE_LIST + page_no] + 1;
-					ret = page_no;
+if (functionNum == 4) then			//Release Block
+	alias BlockNum R2;
+	alias pid R3;
+	[DISK_FREE_LIST+BlockNum] = [DISK_FREE_LIST+BlockNum]-1;
+	return;
+endif;
+if (functionNum == 5) then			//Get Code Page
+	alias BlockNum R2;
+	alias counter R3;
+	alias index R4;
+	counter = 1;
+	while(counter < 16) do
+		index = 4;
+		while(index < 8) do
+			if ([DISK_MAP_TABLE + counter*10 + index] == BlockNum) then
+				if ([PAGE_TABLE_BASE + counter*20 + index*2 + 1] == "0100" || [PAGE_TABLE_BASE + counter*20 + index*2 + 1] == "1100") then		//check if valid
+					R0 = [PAGE_TABLE_BASE + counter*20 + index*2];
+					[MEMORY_FREE_LIST + R0] = [MEMORY_FREE_LIST + R0] + 1; //Memory free list
 					return;
 				endif;
-				i=i+1;
-			endwhile;
-			pro = pro+1;
+			endif;
+			index = index + 1;
 		endwhile;
-	
-		multipush(R1,R2,R3,R4,R5);
-		R1 = 1;
-		call MEMORY_MANAGER;
-		multipop(R1,R2,R3,R4,R5);
-		page_no = R0;
-		R6 = page_no;
-		R7 = block;
-		multipush(R1,R2,R3,R4,R5);
-		R1 = 2;
-		R2 = [SYSTEM_STATUS_TABLE + 1];
-		R3 = R6;
-		R4 = R7;
-		call DEVICE_MANAGER;
-		multipop(R1,R2,R3,R4,R5);
-		ret = page_no;
-		return;
-endif;
-
-if(funcNum == 4) then
-	alias block R2;
-	alias PID R3;
-	[DISK_FREE_LIST + block] = [DISK_FREE_LIST + block] -1;
+		counter = counter + 1;
+	endwhile;
+	multipush(R1,R2);
+	R1 = 1;
+	call MOD_2;
+	multipop(R1,R2);
+	multipush(R0,R1,R2);
+	R1 = 2;
+	R4 = R2;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+	R3 = R0;
+	call MOD_4;
+	multipop(R0,R1,R2);
 	return;
 endif;

@@ -1,108 +1,103 @@
-alias funcNum R1;               // Function Number
-
-
-if(funcNum == 1) then
-
-	alias count R2;
-	count = 1 ;
-	while(count < MAX_PROC_NUM) do
-		if([PROCESS_TABLE + count*16 + 4] == TERMINATED) then
-			R0 = count;
-			[PROCESS_TABLE + count*16 + 4] = ALLOCATED;
-			[PROCESS_TABLE + count*16 + 1] = count;
-			[PROCESS_TABLE + count*16 + 14] = PAGE_TABLE_BASE + 20*count;
-			[PROCESS_TABLE + count*16 + 15] = 10;
+alias functionNum R1;
+alias pid R2;
+if (functionNum == 1) then		//Get pcb entry
+	alias counterpid R3;
+	counterpid = 1;
+	while (counterpid < 16) do
+		if ([PROCESS_TABLE + (counterpid * 16) + 4] == TERMINATED) then
+			R0 = counterpid;		//return value
+			[PROCESS_TABLE + (counterpid * 16) + 1] = counterpid;
+			[PROCESS_TABLE + (counterpid * 16) + 4] = ALLOCATED;
+			[PROCESS_TABLE + (counterpid * 16) + 14] = PAGE_TABLE_BASE + 20 * counterpid;
+			[PROCESS_TABLE + (counterpid * 16) + 15] = 10;
 			return;
 		endif;
-		count = count + 1;
+		counterpid = counterpid + 1;
 	endwhile;
 	R0 = -1;
 	return;
 endif;
-
-
-if(funcNum == 2) then           // Free user area page
-    alias PID R2;               // First Argument (PID)
-    alias userPage R3;
-    userPage = [PROCESS_TABLE + PID * 16 + 11];
-    multipush(R1, R2, R3);
-    R1 = 2;                     // Release Page function number
-    R2 = userPage;              // Page to be deallocated
-    call MEMORY_MANAGER;        // Call memory manager module
-    multipop(R1, R2, R3);
-    return;
-endif;
-
-if(funcNum == 3) then           // Exit Process
-    alias PID R2;               // First Argument (PID)
-    multipush(R1, R2);          // Freeing Page Table contents
-    R1 = 4;
-    call PROCESS_MANAGER;
-    multipop(R1, R2);
-    multipush(R1, R2);          // Freeing User Page area
-    R1 = 2;
-    call PROCESS_MANAGER;
-    multipop(R1, R2);
-    [PROCESS_TABLE + PID * 16 + 4] = TERMINATED;    // Set state to TERMINATED
-    return;
-endif;
-
-if(funcNum == 4) then           // Free Page Table
-    alias PID R2;               // First Argument (PID)
-    alias page_table R3;
-    page_table = PAGE_TABLE_BASE + PID * 20;
-    [page_table + 0] = -1;      // Invalidating Library pages
-    [page_table + 1] = "0000";
-    [page_table + 2] = -1;
-    [page_table + 3] = "0000";  
-    alias i R4;
-    i = 4;
-    alias pageDel R5;           // Would store page no of page to be deallocated
-    while(i < 20) do
-        if([page_table + i] != -1) then             // If page was valid, deallocate it        
-            pageDel = [page_table + i];
-            multipush(R1, R2, R3, R4);
-            R1 = 2;
-            R2 = pageDel;
-            call MEMORY_MANAGER;
-            multipop(R1, R2, R3, R4);
-            [page_table + i] = -1;
-            [page_table + i + 1] = "0000";
-        endif;
-        i = i + 2;
-    endwhile;
-	i=2;
-	while(i<=3) do
-		if([DISK_MAP_TABLE +10*PID + i] !=-1) then
-			R6 = [DISK_MAP_TABLE +10*PID + i];
-			R7 = PID;
-			multipush(R1, R2, R3, R4,R5);
-			R1 = 4;
-			R2 = R6;
-			R3 = R7;
-			call MEMORY_MANAGER;
-			multipop(R1, R2, R3, R4,R5);
+if (functionNum == 2) then		//Free User Area Page
+	alias UserAreaPage R3;
+	alias perprocesstable R4;
+	alias counter R5;
+	UserAreaPage = [PROCESS_TABLE + (pid * 16) + 11];
+	perprocesstable = UserAreaPage * 512 + (512 - 16);
+	counter = 0;
+	while (counter < 16) do
+		if([perprocesstable + counter] == 1) then
+			multipush(R1,R2,R3,R4,R5);
+			R1 = 7;
+			R3 = R2;									//pid stored in R2 (just a rearange)
+			R2 = [perprocesstable + counter + 1];
+			call MOD_0;									//release semaphore
+			multipop(R1,R2,R3,R4,R5);
 		endif;
-		i=i+1;
+		counter = counter + 2;
 	endwhile;
-	i=8;
-	while(i<=9) do
-		if([DISK_MAP_TABLE +10*PID + i] !=-1) then
-			R6 = [DISK_MAP_TABLE +10*PID + i];
-			R7 = PID;
-			multipush(R1, R2, R3, R4,R5);
-			R1 = 4;
-			R2 = R6;
-			R3 = R7;
-			call MEMORY_MANAGER;
-			multipop(R1, R2, R3, R4,R5);
+	R1 = 2;
+	R2 = UserAreaPage;
+	call MOD_2;
+	return;
+endif;
+if (functionNum == 3) then			//Exit
+	if ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] != 9) then
+		alias counter R5;
+		counter = 1;
+		while (counter < 16) do
+			if ([PROCESS_TABLE + (counter * 16) + 4] == WAIT_PROCESS && [PROCESS_TABLE + (counter * 16) + 5] == [SYSTEM_STATUS_TABLE + 1]) then
+				[PROCESS_TABLE + (counter * 16) + 4] = READY;
+			endif;
+			if ([PROCESS_TABLE + (counter * 16) + 2] == [SYSTEM_STATUS_TABLE + 1]) then
+				[PROCESS_TABLE + (counter * 16) + 2] = -1;
+			endif;
+			counter = counter + 1;
+		endwhile;
+	endif;
+	multipush(R1,R2);
+	R1 = 4;			//Free page table
+	R2 = pid;
+	call MOD_1;
+	R1 = 2;			//Free User area page
+	R2 = pid;
+	call MOD_1;
+	multipop(R1,R2);
+	[PROCESS_TABLE + (pid * 16) + 4] = TERMINATED;
+	return;
+endif;
+if (functionNum == 4) then			//Free Page Table
+	alias ptbr R3;
+	alias ptlr R4;
+	ptbr = [PROCESS_TABLE + (pid * 16) + 14];
+	ptlr = [PROCESS_TABLE + (pid * 16) + 15];
+	alias counter R5;
+	counter = 0;
+	while (counter < ptlr) do
+		if ([ptbr+ 2 * counter] != -1) then
+			multipush(R1,R2,R3,R4,R5);
+			R1 = 2;
+			R2 = [ptbr+ 2 * counter];
+			call MOD_2;
+			multipop(R1,R2,R3,R4,R5);
 		endif;
-		i=i+1;
+		[ptbr+ 2 * counter] = -1;
+		[ptbr+ 2 * counter + 1] = "0000";
+		counter = counter + 1;
 	endwhile;
-	i=2;
-	while(i<=9) do
-		[DISK_MAP_TABLE + 10*PID + i] = -1;
-		i=i+1;
+	counter = 0;			//2,3,8,9
+	while(counter < 10) do
+		if (counter == 2 || counter == 3 || counter == 8 || counter == 9) then
+			if ([DISK_MAP_TABLE + pid*10 + counter] != -1) then
+				multipush(R1,R2,R5);
+				R1 = 4;
+				R3 = R2;
+				R2 = [DISK_MAP_TABLE + pid*10 + counter];
+				call MOD_2;
+				multipop(R1,R2,R5);
+			endif;
+		endif;
+		[DISK_MAP_TABLE + pid*10 + counter] = -1;
+		counter = counter + 1;
 	endwhile;
 	return;
 endif;

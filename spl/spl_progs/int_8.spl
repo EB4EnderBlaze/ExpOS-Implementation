@@ -49,7 +49,11 @@ UserAreaPagec = ([PROCESS_TABLE + (childpid * 16) + 11]) * 512 + (512 - 16);
 counter = 0;
 while(counter < 16) do
 	[UserAreaPagec + counter] = [UserAreaPagep + counter];
-	counter = counter + 1;
+	[UserAreaPagec + counter + 1] = [UserAreaPagep + counter + 1];
+	if ([UserAreaPagep + counter] == 1) then					//if semaphore then increase the process count
+		[SEMAPHORE_TABLE + 4 * [UserAreaPagep + counter + 1] + 1] = [SEMAPHORE_TABLE + 4 * [UserAreaPagep + counter + 1] + 1];
+	endif;
+	counter = counter + 2;
 endwhile;
 counter = 0; 					//Disk map table
 while(counter < 10) do
@@ -86,15 +90,14 @@ alias stack R3;
 alias ptbr R4;
 stack = [PROCESS_TABLE + (childpid * 16) + 13];
 ptbr = [PROCESS_TABLE + (childpid * 16) + 14];
-
 [[ptbr + 2 * ((stack - 1) / 512)] * 512 + ((stack - 1) % 512)] = 0;
-
+//return value for parent process
 stack = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-
 [[PTBR + 2 * ((stack - 1) / 512)] * 512 + ((stack - 1) % 512)] = childpid;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-
-breakpoint;
+//putting BP register on top of child kernel stack
 [[PROCESS_TABLE + (childpid * 16) + 11]*512] = BP;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+//print("Fork");
+//breakpoint;
 ireturn;

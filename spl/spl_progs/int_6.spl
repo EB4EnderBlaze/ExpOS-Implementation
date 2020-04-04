@@ -1,31 +1,31 @@
-[PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1] + 9] = 7;                           // System call number for read
-
-alias userSP R0;                                                                    // This would store the user SP
-userSP = SP;
-
-[PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1] + 13] = SP;                         // Save user SP into UPTR
-SP = [PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1] + 11] * 512 - 1;               // and then switch to kernel stack
-
-alias fileDescriptor R1;
-fileDescriptor = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + ((userSP - 4) % 512)];  // Get argument 1 (fd)
-
-if(fileDescriptor != -1) then                                                       // If fd is not -1, then set return val to -1
-    [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)] = -1;
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 6;
+alias userSP R0;
+userSP=SP;
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = userSP;
+SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 11]*512 - 1;
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescPhysicalAddr R3;
+physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+offset = (userSP - 4) % 512;
+fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
+alias fileDescriptor R4;
+fileDescriptor=[fileDescPhysicalAddr];
+if (fileDescriptor != -1)
+then
+	alias physicalAddrRetVal R5;
+	physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = -1;
 else
-    alias wordAddr R2;
-    wordAddr = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];    // Get argument 2 (word address)
-
-    R3 = wordAddr;                                                                  // R3 would hold the word address
-    multipush(R0, R1, R2);                                                          // Push all registers used until now
-    R1 = 4;                                                                         // R1 would hold the Terminal Read function number
-    R2 = [SYSTEM_STATUS_TABLE + 1];                                                 // R2 would hold the Current PID
-    call DEVICE_MANAGER;                                                            // Call the Device Manager module
-    multipop(R0, R1, R2);                                                           // Get back all registers that were used
-    
-    [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)] = 0;           // Return value set to 0, indicating success
+	alias word R5;
+	word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+	multipush(R0,R1,R2,R3,R4,R5);
+	physicalPageNum = 4;					//Terminal Read
+	offset = [SYSTEM_STATUS_TABLE + 1];		//pid
+	fileDescPhysicalAddr = word;			//word to be read
+	call MOD_4;
+	multipop(R0,R1,R2,R3,R4,R5);
 endif;
-
-[PROCESS_TABLE + 16 * [SYSTEM_STATUS_TABLE + 1] + 9] = 0;                           // Mode flag set to 0, indicates user mode
-SP = userSP;                                                                        // Get back user SP
-
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+SP = userSP;
 ireturn;

@@ -1,157 +1,115 @@
-loadi(59, 3);                       // Load Inode Table
-
-loadi(61, 2);                       // Load Disk Free List
-
-loadi(50, 63);                      // Load module 5: Scheduler
-loadi(51, 64);
-
-loadi(40, 53);                      // Load module 0: Resource Manager
-loadi(41, 54);
-
-loadi(42, 55);                      // Load module 1: Process Manager
-loadi(43, 56);
-
-loadi(44, 57);                      // Load module 2: Memory Manager
-loadi(45, 58);
-
-loadi(48, 61);                      // Load module 4: Device Manager
-loadi(49, 62);
-
-loadi(14, 27);                      // Load int 6 handler
-loadi(15, 28);
-
-loadi(16, 29);                      // Load int 7 handler
-loadi(17, 30);
-
-loadi(20, 33);                      // Load int 9 handler
-loadi(21, 34);
-
-loadi(22, 35);                      // Load int 10 handler
-loadi(23, 36);
-
-loadi(4, 17);                       // Load timer interrupt handler
-loadi(5, 18);
-
-loadi(8, 21);                       // Load console interrupt handler
-loadi(9, 22);
-
-loadi(6, 19);                       // Load disk interrupt handler
-loadi(7, 20);
-
-loadi(2, 15);                       // Load exception handler
+loadi(63,13);
+loadi(64,14);	
+loadi(65,7);
+loadi(66,8);
+loadi(22,35);
+loadi(23,36);
+loadi(2, 15);
 loadi(3, 16);
-
-loadi(63, 13);                      // Load shared library
-loadi(64, 14);
-
-loadi(65, 7);                       // Load INIT
-loadi(66, 8);
-
-loadi(18,31);						//int-8
+loadi(4, 17);
+loadi(5, 18);
+loadi(16,29);
+loadi(17,30);
+loadi(83,69);
+loadi(50,63);
+loadi(51,64);
+loadi(40,53);	//Mod 0
+loadi(41,54);
+loadi(48,61);	//Mod 4
+loadi(49,62);
+loadi(8,21);	//Console interupt
+loadi(9,22);
+loadi(14,27);		//INT 6
+loadi(15,28);
+loadi(20,33);		//INT 9
+loadi(21,34);
+loadi(42,55);	//Mod 1
+loadi(43,56);
+loadi(44,57);	//Mod 2
+loadi(45,58);
+loadi(59,3);		//inode table
+loadi(60,4);
+loadi(6,19);		//disk interrupt
+loadi(7,20);
+loadi(61,2);		//disk free list
+loadi(18,31);		//fork
 loadi(19,32);
-
-loadi(83, 69);                      // Load second process
-
-loadi(89, 70);                      // Load third process
-
-// Mark the used memory pages in the memory free list
-alias i R3;
-i = 0;
-while(i < MAX_MEM_PAGE) do          // Initially mark all of them as used
-    [MEMORY_FREE_LIST + i] = 1;
-    i = i + 1;
+loadi(24,37);		//interrupt 11
+loadi(25,38);
+loadi(28,41);		//interrupt 13
+loadi(29,42);
+loadi(30,43);		//interrupt 14
+loadi(31,44);		
+loadi(32,45);		//interrupt 15
+loadi(33,46);
+alias counter R1;
+counter = 1;
+while(counter < 16) do
+	[PROCESS_TABLE + (counter*16) + 4] = TERMINATED;
+	counter = counter + 1;
 endwhile;
-
-i = 76;
-while(i <= 127) do                  // Then mark all the user - allowed pages as unused
-    [MEMORY_FREE_LIST + i] = 0;
-    i = i + 1;
+[TERMINAL_STATUS_TABLE] = 0;
+PTBR = PAGE_TABLE_BASE + 20;
+PTLR = 10;
+[PTBR+0] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+[PTBR+4] = 78;
+[PTBR+5] = "0110";
+[PTBR+6] = 79;
+[PTBR+7] = "0110";
+[PTBR+8] = 65;
+[PTBR+9] = "0100";
+[PTBR+10] = 66;
+[PTBR+11] = "0100";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+[PTBR+16] = 76;
+[PTBR+17] = "0110";
+[PTBR+18] = 77;
+[PTBR+17] = "0110";
+[PROCESS_TABLE + 17] = 1;
+[PROCESS_TABLE + 20] = CREATED;
+[PROCESS_TABLE + 27] = 80;
+[PROCESS_TABLE + 29] = 8*512;
+[PROCESS_TABLE + 28] = 0;
+[PROCESS_TABLE + 30] = PAGE_TABLE_BASE + 20;
+[PROCESS_TABLE + 31] = 10;
+[76*512] = [65*512+1];
+alias pptable R2;
+pptable = (80) * 512 + (512 - 16);		//preprocess table
+counter = 0;
+while(counter < 16) do
+	[pptable+counter] = -1;
+	counter = counter + 1;
 endwhile;
-
-[SYSTEM_STATUS_TABLE + 2] = 52;     // Store the number of free pages (MEM_FREE_COUNT)
-[SYSTEM_STATUS_TABLE + 3] = 0;      // There are no processes waiting for memory (WAIT_MEM_COUNT)
-
-alias page_table R0;
-alias process_table R1;
-
-// Setting up Page Table of INIT
-
-page_table = PAGE_TABLE_BASE + 20;
-
-[page_table + 0] = 63;              // Shared Library
-[page_table + 1] = "0100";
-[page_table + 2] = 64;
-[page_table + 3] = "0100";
-
-[page_table + 4] = 78;              // Heap
-[page_table + 5] = "0110";
-[page_table + 6] = 79;
-[page_table + 7] = "0110";
-
-[page_table + 8] = 65;              // Code
-[page_table + 9] = "0100";
-[page_table + 10] = 66;
-[page_table + 11] = "0100";
-[page_table + 12] = -1;
-[page_table + 13] = "0000";
-[page_table + 14] = -1;
-[page_table + 15] = "0000";
-
-[page_table + 16] = 76;             // Stack
-[page_table + 17] = "0110";
-[page_table + 18] = 77;
-[page_table + 19] = "0110";
-
-// Setting up process table entry of INIT
-
-process_table = PROCESS_TABLE + 16;
-
-[process_table + 1] = 1;            // PID
-[process_table + 13] = 8 * 512;     // User stack pointer
-[process_table + 12] = 0;           // Kernel stack pointer offset
-[process_table + 14] = page_table;  // PTBR of INIT
-[process_table + 15] = 10;          // PTLR of INIT
-[process_table + 11] = 80;          // User page area of INIT
-[process_table + 4] = CREATED;      // State of INIT
-
-[76 * 512] = [65 * 512 + 1];        // Placing entry point of code at the top of the user Stack
-
-[MEMORY_FREE_LIST + 76] = 1;        // Set all the memory pages used to 1 in the memory free list
-[MEMORY_FREE_LIST + 77] = 1;
-[MEMORY_FREE_LIST + 78] = 1;
-[MEMORY_FREE_LIST + 79] = 1;
-[MEMORY_FREE_LIST + 80] = 1;
-[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 5;  // Subtract the number of pages used by INIT
-
-// Initialize disk map table of INIT
-i = 2;
-while(i <= 9) do                        // Set block numbers corresponding to all pages of INIT as -1
-    [DISK_MAP_TABLE + 10 + i] = -1;
-    i = i + 1;
+counter = 0;
+while (counter < 32) do					//semaphore table
+	[SEMAPHORE_TABLE + 4 * counter] = -1;
+	[SEMAPHORE_TABLE + 4 * counter + 1] = 0;
+	counter = counter + 1;
 endwhile;
-[DISK_MAP_TABLE + 10 + 4] = 7;   // First code page lies in block 7 of the disk
-[DISK_MAP_TABLE + 10 + 5] = 8;   // Second code page lies in block 8
-
-alias proc R2;
-proc = 2;
-
-while(proc < 16) do                 // Set state of all other processes to TERMINATED
-    [PROCESS_TABLE + 16 * proc + 4] = TERMINATED;
-    proc = proc + 1;
+counter = 0;
+while(counter < 83) do
+	[MEMORY_FREE_LIST + counter] = 1;
+	counter = counter + 1;
 endwhile;
-
-[TERMINAL_STATUS_TABLE] = 0;        // Terminal is not busy
-[DISK_STATUS_TABLE] = 0;            // Disk is not busy
-
-alias perProcRecOff R3;
-perProcRecOff = 494;
-
-while(perProcRecOff < 512) do
-
-    [[process_table + 11] * 512 + perProcRecOff] = -1;
-    [[process_table + 11] * 512 + perProcRecOff + 1] = -1;
-    perProcRecOff = perProcRecOff + 2;
-
+[MEMORY_FREE_LIST + 63] = 2;
+[MEMORY_FREE_LIST + 64] = 2;
+[SYSTEM_STATUS_TABLE + 2] = 0;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+while(counter < 128) do					//count free pages
+	[MEMORY_FREE_LIST + counter] = 0;
+	[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+	counter = counter + 1;
 endwhile;
-
+[DISK_STATUS_TABLE] = 0;				//Disk free
+counter = 0;						//disk map table
+while(counter < 10) do
+	[DISK_MAP_TABLE + 10 + counter] = -1;
+	counter = counter + 1;
+endwhile;
 return;
