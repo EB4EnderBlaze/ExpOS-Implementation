@@ -35,8 +35,8 @@ if (SyscallNumber == 17) then				//Semget
 	endif;
 	if (R0 != -1) then
 		[perprocesstable + counter] = 1;				//Semaphore
-		[perprocesstable + counter+1] = R0;			//storing the entry
-		R0 = counter / 2;							//return value
+		[perprocesstable + counter + 1] = R0;			//storing the entry
+		R0 = counter / 2; 								//return value
 	else if (flag == -1) then
 			R0 = -1;
 		else

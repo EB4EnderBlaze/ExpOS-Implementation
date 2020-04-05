@@ -30,28 +30,35 @@ multipush(R1);
 R1 = 1;
 call MOD_2;				//get free page for user area page
 multipop(R1);
-[PROCESS_TABLE + (childpid * 16) + 11] = R0;			//User area page
-[PROCESS_TABLE + (childpid * 16) + 3] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 3];					//userid
-[PROCESS_TABLE + (childpid * 16) + 6] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 6];					//swap flag
-[PROCESS_TABLE + (childpid * 16) + 10] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 10];					// userareaswapstatus
-[PROCESS_TABLE + (childpid * 16) + 7] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 7];					//Inode index
-[PROCESS_TABLE + (childpid * 16) + 13] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];					//UPTR
-[PROCESS_TABLE + (childpid * 16) + 9] = 0;				//Mode flag
-[PROCESS_TABLE + (childpid * 16) + 0] = 0;				//TICK
-[PROCESS_TABLE + (childpid * 16) + 12] = 0;			//KTPR
-[PROCESS_TABLE + (childpid * 16) + 2] = [SYSTEM_STATUS_TABLE + 1];	//PPID
-[PROCESS_TABLE + (childpid * 16) + 4] = CREATED;			//State
+alias temp R15;
+temp = childpid * 16;
+[PROCESS_TABLE + (temp) + 11] = R0;			//User area page
+[PROCESS_TABLE + (temp) + 3] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 3];					//userid
+[PROCESS_TABLE + (temp) + 6] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 6];					//swap flag
+[PROCESS_TABLE + (temp) + 10] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 10];					// userareaswapstatus
+[PROCESS_TABLE + (temp) + 7] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 7];					//Inode index
+[PROCESS_TABLE + (temp) + 13] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];					//UPTR
+[PROCESS_TABLE + (temp) + 9] = 0;				//Mode flag
+[PROCESS_TABLE + (temp) + 0] = 0;				//TICK
+[PROCESS_TABLE + (temp) + 12] = 0;			//KTPR
+[PROCESS_TABLE + (temp) + 2] = [SYSTEM_STATUS_TABLE + 1];	//PPID
+[PROCESS_TABLE + (temp) + 4] = CREATED;			//State
 alias UserAreaPagep R2;
 alias UserAreaPagec R3;
 alias counter R4;
-UserAreaPagep = ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11]) * 512 + (512 - 16);		//semaphores
+UserAreaPagep = ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11]) * 512 + (512 - 16);		//perprocess table
 UserAreaPagec = ([PROCESS_TABLE + (childpid * 16) + 11]) * 512 + (512 - 16);
 counter = 0;
 while(counter < 16) do
 	[UserAreaPagec + counter] = [UserAreaPagep + counter];
 	[UserAreaPagec + counter + 1] = [UserAreaPagep + counter + 1];
-	if ([UserAreaPagep + counter] == 1) then					//if semaphore then increase the process count
-		[SEMAPHORE_TABLE + 4 * [UserAreaPagep + counter + 1] + 1] = [SEMAPHORE_TABLE + 4 * [UserAreaPagep + counter + 1] + 1];
+	alias temp R15;
+	temp = 4 * [UserAreaPagep + counter + 1];							//just to reduce
+	if ([UserAreaPagep + counter] == SEMAPHORE) then					//if semaphore then increase the process count
+		[SEMAPHORE_TABLE + temp + 1] = [SEMAPHORE_TABLE + temp + 1] + 1;
+	endif;
+	if ([UserAreaPagep + counter] == FILE) then					//if file
+		[OPEN_FILE_TABLE + temp + 1] = [OPEN_FILE_TABLE + temp + 1] + 1;
 	endif;
 	counter = counter + 2;
 endwhile;

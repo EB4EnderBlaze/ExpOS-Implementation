@@ -36,7 +36,7 @@ if (SyscallNumber == 13) then				//Wait
 	PhysicalPageNum = [PTBR + 2 * ((userSP - 1)/ 512)];				//return address
 	offset = (userSP - 1) % 512;
 	CallNumAdd = (PhysicalPageNum * 512) + offset;
-	if (pid == [SYSTEM_STATUS_TABLE + 1] && [PROCESS_TABLE + (pid * 16) + 4] != TERMINATED && pid > 0 && pid < 16) then
+	if (pid == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + (pid * 16) + 4] == TERMINATED || (pid < 0 && pid >= 16)) then
 		[CallNumAdd] = -1;				//Error
 	else
 		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = WAIT_PROCESS;

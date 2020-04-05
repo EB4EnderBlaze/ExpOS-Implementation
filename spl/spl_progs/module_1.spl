@@ -7,7 +7,6 @@ if (functionNum == 1) then		//Get pcb entry
 		if ([PROCESS_TABLE + (counterpid * 16) + 4] == TERMINATED) then
 			R0 = counterpid;		//return value
 			[PROCESS_TABLE + (counterpid * 16) + 1] = counterpid;
-			[PROCESS_TABLE + (counterpid * 16) + 4] = ALLOCATED;
 			[PROCESS_TABLE + (counterpid * 16) + 14] = PAGE_TABLE_BASE + 20 * counterpid;
 			[PROCESS_TABLE + (counterpid * 16) + 15] = 10;
 			return;
@@ -25,12 +24,19 @@ if (functionNum == 2) then		//Free User Area Page
 	perprocesstable = UserAreaPage * 512 + (512 - 16);
 	counter = 0;
 	while (counter < 16) do
-		if([perprocesstable + counter] == 1) then
+		if([perprocesstable + counter] == SEMAPHORE) then
 			multipush(R1,R2,R3,R4,R5);
 			R1 = 7;
 			R3 = R2;									//pid stored in R2 (just a rearange)
 			R2 = [perprocesstable + counter + 1];
 			call MOD_0;									//release semaphore
+			multipop(R1,R2,R3,R4,R5);
+		endif;
+		if([perprocesstable + counter] == FILE) then
+			multipush(R1,R2,R3,R4,R5);
+			R1 = 4;									
+			R2 = [perprocesstable + counter + 1];
+			call MOD_3;									//close
 			multipop(R1,R2,R3,R4,R5);
 		endif;
 		counter = counter + 2;
@@ -97,6 +103,45 @@ if (functionNum == 4) then			//Free Page Table
 			endif;
 		endif;
 		[DISK_MAP_TABLE + pid*10 + counter] = -1;
+		counter = counter + 1;
+	endwhile;
+	return;
+endif;
+if (functionNum == 5) then			//Kill all
+	alias counter R4;
+	counter = 0;
+	while (counter < 60) do
+		if ([INODE_TABLE + 16 * counter + 1] != -1) then
+			multipush(R1,R2,R4);
+			R1 = 4;
+			R3 = pid;
+			R2 = counter;
+			call MOD_0;
+			multipop(R1,R2,R4);
+		endif;
+		counter = counter + 1;
+	endwhile;
+	counter = 2;
+	while (counter < MAX_PROC_NUM) do
+		if (pid != counter) then
+			multipush(R1,R2,R4);
+			R1 = 3;
+			R2 = pid;
+			call MOD_1;
+			multipop(R1,R2,R4);
+		endif;
+		counter = counter + 1;
+	endwhile;
+	counter = 0;
+		while (counter < 60) do
+		if ([INODE_TABLE + 16 * counter + 1] != -1) then
+			multipush(R1,R2,R4);
+			R1 = 5;
+			R3 = pid;
+			R2 = counter;
+			call MOD_0;
+			multipop(R1,R2,R4);
+		endif;
 		counter = counter + 1;
 	endwhile;
 	return;

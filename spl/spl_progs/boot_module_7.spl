@@ -42,6 +42,13 @@ loadi(30,43);		//interrupt 14
 loadi(31,44);		
 loadi(32,45);		//interrupt 15
 loadi(33,46);
+loadi(10,23);		//interrupt 4
+loadi(11,24);
+loadi(62,5);		//root file
+loadi(12,25);		//interrupt 5
+loadi(13,26);		
+loadi(46,59);		//Mod 3
+loadi(47,60);		
 alias counter R1;
 counter = 1;
 while(counter < 16) do
@@ -70,8 +77,9 @@ PTLR = 10;
 [PTBR+16] = 76;
 [PTBR+17] = "0110";
 [PTBR+18] = 77;
-[PTBR+17] = "0110";
+[PTBR+19] = "0110";
 [PROCESS_TABLE + 17] = 1;
+[PROCESS_TABLE + 19] = 1;					//user id root = 1
 [PROCESS_TABLE + 20] = CREATED;
 [PROCESS_TABLE + 27] = 80;
 [PROCESS_TABLE + 29] = 8*512;
@@ -110,6 +118,25 @@ endwhile;
 counter = 0;						//disk map table
 while(counter < 10) do
 	[DISK_MAP_TABLE + 10 + counter] = -1;
+	counter = counter + 1;
+endwhile;
+counter = 0;
+while (counter < 60) do									//file status table
+	[FILE_STATUS_TABLE + counter * 4] = -1;
+	[FILE_STATUS_TABLE + counter * 4 + 1] = -1;					
+	counter = counter + 1;
+endwhile;
+counter = 0;
+while (counter < 4) do									//buffer table
+	[BUFFER_TABLE + 4 * counter] = -1;
+	[BUFFER_TABLE + 4 * counter + 1] = 0;
+	[BUFFER_TABLE + 4 * counter + 2] = -1;
+	counter = counter + 1;
+endwhile;
+counter = 0;
+while (counter < MAX_OPENFILE_NUM) do
+	[OPEN_FILE_TABLE + 4 * counter] = -1;
+	[OPEN_FILE_TABLE + 4 * counter + 1] = 0;
 	counter = counter + 1;
 endwhile;
 return;

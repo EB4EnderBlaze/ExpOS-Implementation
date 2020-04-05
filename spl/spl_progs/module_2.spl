@@ -33,10 +33,23 @@ if (functionNum == 2) then			//Release Page
 	endwhile;
 	return;
 endif;
+if (functionNum == 3) then			//Get free block
+	alias counter R0;
+	counter = DISK_FREE_AREA;
+	while (counter < DISK_SWAP_AREA) do
+		if ([DISK_FREE_LIST + counter] == 0) then
+			[DISK_FREE_LIST + counter] = 1;
+			return;
+		endif;
+		counter = counter + 1;
+	endwhile;
+	R0 = -1;
+	return;
+endif;
 if (functionNum == 4) then			//Release Block
 	alias BlockNum R2;
 	alias pid R3;
-	[DISK_FREE_LIST+BlockNum] = [DISK_FREE_LIST+BlockNum]-1;
+	[DISK_FREE_LIST + BlockNum] = 0;
 	return;
 endif;
 if (functionNum == 5) then			//Get Code Page

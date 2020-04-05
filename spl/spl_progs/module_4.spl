@@ -1,5 +1,18 @@
 alias functionNum R1;
 alias currentPID R2;
+if (functionNum == 1) then			//Disk Store			
+	alias PageNum R3;
+	alias BlockNum R4;
+	multipush(R1,R2,R3,R4);
+	R1 = 3;
+	call MOD_0;							//acquire
+	multipop(R1,R2,R3,R4);
+	[DISK_STATUS_TABLE+1] = 1;			//Store
+	store(PageNum,BlockNum);
+	[PROCESS_TABLE + (currentPID * 16) + 4] = WAIT_DISK;
+	call MOD_5;
+	return;
+endif;
 if (functionNum == 2) then			//Disk Load			
 	alias PageNum R3;
 	alias BlockNum R4;
