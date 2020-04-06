@@ -5,13 +5,8 @@ R1 = 1;				//get pcb entry for child process
 call MOD_1;
 alias childpid R1;
 childpid = R0;					//child pid is returned by get pcb entry
-if (childpid == -1) then		//failed
-	alias physicalAddrRetVal R3;
-	physicalAddrRetVal = ([PTBR + 2 * (([PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] - 1) / 512)] * 512) + (([PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] - 1) % 512);
-	[physicalAddrRetVal] = -1;
-	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-	SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-	ireturn;
+if (childpid == -1) then
+	goto lb;
 endif;
 //get page 2 + 1 stack,userarea pages
 multipush(R1);
@@ -31,18 +26,18 @@ R1 = 1;
 call MOD_2;				//get free page for user area page
 multipop(R1);
 alias temp R15;
-temp = childpid * 16;
-[PROCESS_TABLE + (temp) + 11] = R0;			//User area page
-[PROCESS_TABLE + (temp) + 3] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 3];					//userid
-[PROCESS_TABLE + (temp) + 6] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 6];					//swap flag
-[PROCESS_TABLE + (temp) + 10] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 10];					// userareaswapstatus
-[PROCESS_TABLE + (temp) + 7] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 7];					//Inode index
-[PROCESS_TABLE + (temp) + 13] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];					//UPTR
-[PROCESS_TABLE + (temp) + 9] = 0;				//Mode flag
-[PROCESS_TABLE + (temp) + 0] = 0;				//TICK
-[PROCESS_TABLE + (temp) + 12] = 0;			//KTPR
-[PROCESS_TABLE + (temp) + 2] = [SYSTEM_STATUS_TABLE + 1];	//PPID
-[PROCESS_TABLE + (temp) + 4] = CREATED;			//State
+temp = PROCESS_TABLE + childpid * 16;
+[temp + 11] = R0;			//User area page
+[temp + 3] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 3];					//userid
+[temp + 6] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 6];			//swap flag
+[temp + 10] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 10];		//userareaswapstatus
+[temp + 7] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 7];			//Inode index
+[temp + 13] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];			//UPTR
+[temp + 9] = 0;				//Mode flag
+[temp + 0] = 0;				//TICK
+[temp + 12] = 0;			//KTPR
+[temp + 2] = [SYSTEM_STATUS_TABLE + 1];	//PPID
+[temp + 4] = CREATED;			//State
 alias UserAreaPagep R2;
 alias UserAreaPagec R3;
 alias counter R4;
@@ -62,19 +57,29 @@ while(counter < 16) do
 	endif;
 	counter = counter + 2;
 endwhile;
-counter = 0; 					//Disk map table
-while(counter < 10) do
-	[DISK_MAP_TABLE + childpid*10 + counter] = [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + counter];
-	counter = counter + 1;
-endwhile;
 alias pagenum R7;
 counter = 0;
 while(counter < 16) do				//uptil stack page
+	temp = PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE + 1] + counter;
 	if(counter % 2 == 0) then
-		pagenum =  [PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE + 1] + counter];
+		pagenum = [temp];
+		if (pagenum == -1 && (counter == 4 || counter == 6)) then	  //only for heap pages
+			multipush(R1,R4,R7,R15);
+			R1 = 1;
+			call MOD_2;
+			multipop(R1,R4,R7,R15);
+			pagenum = R0;
+			[temp] = R0;
+			[temp + 1] = "0110";
+		endif;
 		[MEMORY_FREE_LIST + pagenum] = [MEMORY_FREE_LIST + pagenum] + 1;
 	endif;
-	[PAGE_TABLE_BASE + 20*childpid + counter] = [PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE + 1] + counter];
+	[PAGE_TABLE_BASE + 20*childpid + counter] = [temp];
+	counter = counter + 1;
+endwhile;
+counter = 0; 					//Disk map table
+while(counter < 10) do
+	[DISK_MAP_TABLE + childpid*10 + counter] = [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + counter];
 	counter = counter + 1;
 endwhile;
 //copy stack pages word by word
@@ -98,13 +103,13 @@ alias ptbr R4;
 stack = [PROCESS_TABLE + (childpid * 16) + 13];
 ptbr = [PROCESS_TABLE + (childpid * 16) + 14];
 [[ptbr + 2 * ((stack - 1) / 512)] * 512 + ((stack - 1) % 512)] = 0;
+[[PROCESS_TABLE + (childpid * 16) + 11]*512] = BP;		//putting BP register on top of child kernel stack
 //return value for parent process
-stack = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-[[PTBR + 2 * ((stack - 1) / 512)] * 512 + ((stack - 1) % 512)] = childpid;
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-//putting BP register on top of child kernel stack
-[[PROCESS_TABLE + (childpid * 16) + 11]*512] = BP;
-SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-//print("Fork");
-//breakpoint;
-ireturn;
+lb:
+	stack = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[[PTBR + 2 * ((stack - 1) / 512)] * 512 + ((stack - 1) % 512)] = childpid;
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+	SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	//print("Fork");
+	//breakpoint;
+	ireturn;

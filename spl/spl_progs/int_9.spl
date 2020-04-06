@@ -32,13 +32,13 @@ if (flag == 0) then
 else
 	fileindex = (INODE_TABLE + fileindex);
 	multipush(R1,R2,R3,R4,R5,R6);
-	R1 = 3; //calling exit
+	R1 = 3; 							//calling exit
 	R2 = [SYSTEM_STATUS_TABLE + 1];
 	call MOD_1;
 	multipop(R1,R2,R3,R4,R5,R6);
 	alias UserAreaPage R7;
 	UserAreaPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
-	[SYSTEM_STATUS_TABLE+2] = [SYSTEM_STATUS_TABLE+2] - 1;
+	[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE +2 ] - 1;
 	[MEMORY_FREE_LIST + UserAreaPage] = [MEMORY_FREE_LIST + UserAreaPage] + 1;
 	SP = UserAreaPage*512 - 1;
 	[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 4] = RUNNING;
@@ -47,14 +47,16 @@ else
 	ptbr = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 14];
 	[ptbr+0] = 63;
 	[ptbr+1] = "0100";
+	[MEMORY_FREE_LIST + 63] = [MEMORY_FREE_LIST + 63] + 1;
 	[ptbr+2] = 64;
 	[ptbr+3] = "0100";
+	[MEMORY_FREE_LIST + 64] = [MEMORY_FREE_LIST + 64] + 1;
 	[ptbr+5] = "0000";		//invalidate heap pages
 	[ptbr+7] = "0000";
 	alias counter R9;
 	counter = 0;
 	while (counter < 2) do			//Stack
-		multipush(R3,R4,R5,R6,R7,R8,R9);
+		multipush(R1,R2,R3,R4,R5,R6,R7,R8,R9);
 		R1 = 1;
 		call MOD_2;
 		multipop(R1,R2,R3,R4,R5,R6,R7,R8,R9);
@@ -64,12 +66,16 @@ else
 	endwhile;
 	if([fileindex + 8] != -1) then				//first code page
 		multipush(R3,R4,R5,R6,R7,R8,R9);
-		R1 = 5;
+		R1 = 5;									//get code page
 		R2 = [fileindex + 8];
 		call MOD_2;
 		multipop(R3,R4,R5,R6,R7,R8,R9);
 		[ptbr+8] = R0;
-		[ptbr+9] = "0100";
+		if (R0 > 0) then
+			[ptbr+9] = "0100";
+		else
+			[ptbr+9] = "0000";
+		endif;
 	endif;
 	[ptbr + 11] = "0000";		//invalidate
 	[ptbr + 13] = "0000";
@@ -79,7 +85,7 @@ else
 		[DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + counter] = -1;
 		counter = counter + 1;
 	endwhile;
-	[DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + 4] = -1;
+	[DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + 4] = [fileindex + 8];
 	[DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + 5] = [fileindex + 9];
 	[DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + 6] = [fileindex + 10];
 	[DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + 7] = [fileindex + 11]; 
@@ -94,4 +100,6 @@ else
 	SP = 8*512;
 	[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
 endif;
+//print("Exec");
+//breakpoint;
 ireturn;

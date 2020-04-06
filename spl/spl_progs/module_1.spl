@@ -47,7 +47,7 @@ if (functionNum == 2) then		//Free User Area Page
 	return;
 endif;
 if (functionNum == 3) then			//Exit
-	if ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] != 9) then
+	if ([PROCESS_TABLE + (pid * 16) + 9] != 9) then
 		alias counter R5;
 		counter = 1;
 		while (counter < 16) do
@@ -59,11 +59,20 @@ if (functionNum == 3) then			//Exit
 			endif;
 			counter = counter + 1;
 		endwhile;
+		if ([SYSTEM_STATUS_TABLE + 2] > MEM_HIGH) then
+			multipush(R1,R2);
+			R1 = 2;
+			R2 = [SYSTEM_STATUS_TABLE + 1];
+			call MOD_6;
+			multipop(R1,R2);
+		endif;
 	endif;
 	multipush(R1,R2);
 	R1 = 4;			//Free page table
 	R2 = pid;
 	call MOD_1;
+	multipop(R1,R2);
+	multipush(R1,R2);
 	R1 = 2;			//Free User area page
 	R2 = pid;
 	call MOD_1;
@@ -121,12 +130,12 @@ if (functionNum == 5) then			//Kill all
 		endif;
 		counter = counter + 1;
 	endwhile;
-	counter = 2;
+	counter = 2;						//first process is login
 	while (counter < MAX_PROC_NUM) do
 		if (pid != counter) then
 			multipush(R1,R2,R4);
 			R1 = 3;
-			R2 = pid;
+			R2 = counter;
 			call MOD_1;
 			multipop(R1,R2,R4);
 		endif;

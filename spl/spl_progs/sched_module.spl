@@ -6,27 +6,35 @@ multipush(BP);
 [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 15] = PTLR;
 alias flag R1;
 alias pid R2;
-flag = 0;
-pid = currentpid + 1;
-while (pid < 16) do
-	if ([PROCESS_TABLE + (pid * 16) + 4] == READY || [PROCESS_TABLE + (pid * 16) + 4] == CREATED) then
-		flag = 1;
-		break;
+if ([SYSTEM_STATUS_TABLE + 5] != -1) then
+	if ([PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 5]*16 + 4] == WAIT_DISK) then
+		pid = 0;
+	else
+		pid = [SYSTEM_STATUS_TABLE + 5];
 	endif;
-	pid = pid + 1;
-endwhile;
-if (flag == 0) then
-	pid = 1;
-	while (pid <= currentpid) do
-		if ([PROCESS_TABLE + (pid * 16) + 4] == READY || [PROCESS_TABLE + (pid * 16) + 4] == CREATED) then
-		flag = 1;
-		break;
-	endif;
-	pid = pid + 1;
+else
+	flag = 0;
+	pid = currentpid + 1;
+	while (pid < 16) do
+		if ([PROCESS_TABLE + pid * 16 + 6] == 0 && ([PROCESS_TABLE + (pid * 16) + 4] == READY || [PROCESS_TABLE + (pid * 16) + 4] == CREATED)) then
+			flag = 1;
+			break;
+		endif;
+		pid = pid + 1;
 	endwhile;
-endif;
-if (flag == 0) then 
-	pid = 0;
+	if (flag == 0) then
+		pid = 1;
+		while (pid <= currentpid) do
+			if ([PROCESS_TABLE + pid * 16 + 6] == 0 && [PROCESS_TABLE + (pid * 16) + 4] == READY || [PROCESS_TABLE + (pid * 16) + 4] == CREATED) then
+			flag = 1;
+			break;
+		endif;
+		pid = pid + 1;
+		endwhile;
+	endif;
+	if (flag == 0) then 
+		pid = 0;
+	endif;
 endif;
 [SYSTEM_STATUS_TABLE + 1] = pid;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 12];

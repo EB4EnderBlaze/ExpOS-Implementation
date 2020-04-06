@@ -130,7 +130,7 @@ if (SyscallNumber == 6) then								//seek
 						[OPEN_FILE_TABLE + 4 * fileindex + 2] = 0;
 					else
 						if (lseek + goffset >= filesize) then
-							[OPEN_FILE_TABLE + 4 * fileindex + 2] = filesize - 1;
+							[OPEN_FILE_TABLE + 4 * fileindex + 2] = filesize;
 						else
 							[OPEN_FILE_TABLE + 4 * fileindex + 2] = lseek + goffset;
 						endif;

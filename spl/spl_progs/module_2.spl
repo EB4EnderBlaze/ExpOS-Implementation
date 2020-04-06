@@ -1,9 +1,16 @@
 alias functionNum R1;
 if (functionNum == 1) then			//Get Free Page
-	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;	//wait mem count 
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;	//wait mem count
 	while ([SYSTEM_STATUS_TABLE + 2] == 0) do
-		[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 4] = WAIT_MEM;
+		multipush(R1);
+		R1 = 1;
+		R2 = [SYSTEM_STATUS_TABLE + 1];
+		call MOD_6;
+		multipop(R1);
+		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = WAIT_MEM;
+		multipush(R1,R2);
 		call MOD_5;
+		multipop(R1,R2);
 	endwhile;
 	[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1; 
 	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
@@ -56,7 +63,7 @@ if (functionNum == 5) then			//Get Code Page
 	alias BlockNum R2;
 	alias counter R3;
 	alias index R4;
-	counter = 1;
+	counter = 3;
 	while(counter < 16) do
 		index = 4;
 		while(index < 8) do
@@ -82,5 +89,20 @@ if (functionNum == 5) then			//Get Code Page
 	R3 = R0;
 	call MOD_4;
 	multipop(R0,R1,R2);
+	return;
+endif;
+if (functionNum == 6) then			//Get Swap block
+	alias counter R0;
+	counter = DISK_SWAP_AREA;
+	while(counter < 512) do				//DISK_SIZE = 512
+		if([DISK_FREE_LIST + counter] == 0) then
+			[DISK_FREE_LIST + counter] = 1;
+			//print(counter);
+			//breakpoint;
+			return;
+		endif;
+		counter = counter + 1;
+	endwhile;
+	R0 = -1;
 	return;
 endif;

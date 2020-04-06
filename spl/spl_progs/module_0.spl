@@ -73,10 +73,10 @@ if (functionNum == 5) then						//release inode
 	alias counter R4;
 	counter = 1;
 	while (counter < 16) do
-		if([PROCESS_TABLE + (currentPID * 16) + 4] == WAIT_FILE &&
-		[PROCESS_TABLE + (currentPID * 16) + 5] == inodeindex) then
-			[PROCESS_TABLE + (currentPID * 16) + 4] = READY;
-			[PROCESS_TABLE + (currentPID * 16) + 5] = 0;
+		if([PROCESS_TABLE + (counter * 16) + 4] == WAIT_FILE &&
+		[PROCESS_TABLE + (counter * 16) + 5] == inodeindex) then
+			[PROCESS_TABLE + (counter * 16) + 4] = READY;
+			[PROCESS_TABLE + (counter * 16) + 5] = 0;
 		endif;
 		counter = counter + 1;
 	endwhile;

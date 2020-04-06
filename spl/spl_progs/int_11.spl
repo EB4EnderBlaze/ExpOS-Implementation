@@ -10,6 +10,8 @@ offset = (userSP - 5) % 512;
 CallNumAdd = (PhysicalPageNum * 512) + offset;
 alias SyscallNumber R4;
 SyscallNumber=[CallNumAdd];
+//print("int11");
+//print(SyscallNumber);
 if (SyscallNumber == 11) then				//Getpid
 	PhysicalPageNum = [PTBR + 2 * ((userSP - 1)/ 512)];				//return address
 	offset = (userSP - 1) % 512;

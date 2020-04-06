@@ -77,7 +77,7 @@ if (SyscallNumber == 1) then			//Create
 		[R12 + 0] = filename;
 		[R12 + 1] = 0;
 		[R12 + 2] = DATA;
-		[R12 + 3] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 3];
+		[R12 + 3] = [USER_TABLE + 2*[R11 + 3]];
 		[R12 + 4] = permission;
 		[physicalAddrRetVal] = 0;				//Return value	
 	endif;
@@ -91,7 +91,6 @@ if (SyscallNumber == 4) then				//delete
 	else
 		R11 = INODE_TABLE + fileindex * 16;
 		R12 = ROOT_FILE + fileindex * 8;
-
 		if ([R11 + 0] != DATA) then
 				[physicalAddrRetVal] = -1;
 		else

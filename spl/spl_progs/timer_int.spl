@@ -1,12 +1,27 @@
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 backup;
+if ([SYSTEM_STATUS_TABLE + 1] != 0) then
+	if ([SYSTEM_STATUS_TABLE + 2] < MEM_LOW) then
+		R1 = 1;											//SWAP OUT
+		R2 = [SYSTEM_STATUS_TABLE + 1];
+		call MOD_6;
+	else
+		if ([SYSTEM_STATUS_TABLE + 2] > MEM_HIGH) then
+			R1 = 2;										//SWAP IN
+			R2 = [SYSTEM_STATUS_TABLE + 1];
+			call MOD_6;
+		endif;
+	endif;
+endif;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = READY;
-alias count R0;
+alias count R0;											//Increase the tick
 count = 0;
-while(count < 256) do
-	[PROCESS_TABLE + count] = [PROCESS_TABLE + count] + 1;
-	count = count + 16;
+while(count < 16) do	
+	if ([PROCESS_TABLE + 16*count + 4] != TERMINATED) then					//only for non terminated process
+		[PROCESS_TABLE + 16*count] = [PROCESS_TABLE + 16*count] + 1;
+	endif;
+	count = count + 1;
 endwhile;
 call MOD_5;
 restore;
@@ -14,5 +29,8 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
 //print([SYSTEM_STATUS_TABLE + 1]);
 //print("timer");
-breakpoint;
+//if ([SYSTEM_STATUS_TABLE+1] == 2) then
+//	breakpoint;
+//endif;
+//breakpoint;
 ireturn;
