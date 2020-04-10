@@ -32,3 +32,5 @@ load --library ../expl/library.lib
 load --data ../sample.dat
 load --data ../numbers.dat
 load --exec ../expl/samples/init_odd.xsm
+load --exec ../expl/samples/even.xsm
+load --exec ../expl/samples/gcd.xsm
